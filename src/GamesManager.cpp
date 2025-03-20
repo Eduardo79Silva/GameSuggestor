@@ -1,11 +1,14 @@
 #include "GamesManager.h"
 #include "utils.h"
+#include <filesystem>
 #include <algorithm>
 #include <atomic>
 #include <cstddef>
 #include <fstream>
 #include <future>
 #include <iostream>
+
+namespace fs = std::filesystem;
 
 GamesManager::GamesManager() {}
 
@@ -104,7 +107,7 @@ void GamesManager::printGamesWithCategory(std::string category) {
 
 void GamesManager::loadGamesGenresAndCategories() {
   // Create a cache directory if it doesn't exist
-  std::filesystem::create_directories("cache");
+  fs::create_directories("cache");
   
   std::vector<std::future<void>> futures;
   std::atomic<int> cacheHits(0);
@@ -118,7 +121,7 @@ void GamesManager::loadGamesGenresAndCategories() {
       std::string cacheFile = "cache/info_" + std::to_string(game.getId()) + ".cache";
       
       // Check if we have cached data
-      if (std::filesystem::exists(cacheFile)) {
+      if (fs::exists(cacheFile)) {
         std::ifstream cache(cacheFile);
         if (cache.good()) {
           try {
@@ -185,7 +188,7 @@ void GamesManager::loadGamesGenresAndCategories() {
 
 void GamesManager::loadGamesDuration() {
   // Create a cache directory if it doesn't exist
-  std::filesystem::create_directories("cache");
+  fs::create_directories("cache");
 
   std::vector<std::future<void>> futures;
   std::atomic<int> cacheHits(0);
@@ -200,7 +203,7 @@ void GamesManager::loadGamesDuration() {
               "cache/duration_" + std::to_string(game.getId()) + ".cache";
 
           // Check if we have cached data
-          if (std::filesystem::exists(cacheFile)) {
+          if (fs::exists(cacheFile)) {
             std::ifstream cache(cacheFile);
             int duration;
             if (cache >> duration) {

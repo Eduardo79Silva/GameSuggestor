@@ -1,97 +1,87 @@
 cmake_minimum_required(VERSION 3.14)
 project(SteamSuggestor VERSION 1.0.0 LANGUAGES CXX)
 
-# Set C++ standard and export compile commands
+# Use C++17 and export compile commands.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Force output directories for executables and libraries.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# Collect source files
-file(GLOB SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+if(MSVC)
+  add_compile_options(/W4)
+else()
+  add_compile_options(-Wall -Wextra -Werror -pedantic -O2)
+endif()
 
-# Define the main executable
-add_executable(SteamSuggestor ${SOURCE_FILES})
-set_target_properties(SteamSuggestor PROPERTIES 
-    OUTPUT_NAME "SteamSuggestor" 
-    SUFFIX ".exe"
+# Add include directories.
+include_directories(
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/lib"
+  "${CMAKE_CURRENT_SOURCE_DIR}/lib/curl/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/lib/gtest/googletest/include"
 )
 
-# Target-specific compile options and definitions
-target_compile_options(SteamSuggestor PRIVATE -Wall -Wextra -Werror -pedantic -O2)
-target_compile_definitions(SteamSuggestor PRIVATE CURL_STATICLIB)
+# Collect all source files from src/.
+file(GLOB SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
-# Include directories for project sources
-target_include_directories(SteamSuggestor PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
-)
+add_library(GameSuggestorLib ${SRC_FILES})
 
-# Handle libcurl dependency
-if(UNIX)
-  find_package(CURL REQUIRED)
+# Create the main executable target.
+add_executable(SteamSuggestor ${SRC_FILES})
+set_target_properties(SteamSuggestor PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+if(MSVC)
+  target_link_libraries(SteamSuggestor PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/curl/bin/libcurl.lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/gtest/build/lib/gtest.lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/gtest/build/lib/gtest_main.lib"
+  )
 else()
-  # Windows-specific curl handling
-  set(CURL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/lib/curl/install/include)
-  set(CURL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/lib/curl/install/lib/libcurl.dll.a)
-  set(CURL_DISABLE_HTTP3 ON)
-  set(CMAKE_USE_WINSSL ON)
+  # For MinGW, add link directories (which can handle spaces correctly) before linking.
+  link_directories(
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/curl/lib"
+  )
+  target_link_libraries(GameSuggestorLib PUBLIC -lcurl)
+  target_link_libraries(SteamSuggestor PRIVATE GameSuggestorLib -pthread)
 endif()
 
-target_include_directories(SteamSuggestor PRIVATE ${CURL_INCLUDE_DIRS})
-
-if(WIN32)
-    target_link_libraries(SteamSuggestor PRIVATE ${CURL_LIBRARIES} ws2_32 wldap32 crypt32)
-else()
-    target_link_libraries(SteamSuggestor PRIVATE ${CURL_LIBRARIES})
+# Optionally, add a test executable if test sources exist.
+file(GLOB TEST_SRC "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
+if(TEST_SRC)
+  add_executable(run_tests ${TEST_SRC})
+  target_include_directories(run_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/curl/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/gtest/googletest/include"
+  )
+  if(MSVC)
+    target_link_libraries(run_tests PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/lib/curl/bin/libcurl.lib"
+      "${CMAKE_CURRENT_SOURCE_DIR}/lib/gtest/build/lib/gtest.lib"
+      "${CMAKE_CURRENT_SOURCE_DIR}/lib/gtest/build/lib/gtest_main.lib"
+    )
+  else()
+    # Specify the full paths to the Google Test libraries
+    set(GTEST_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/gtest/lib")
+    target_link_libraries(run_tests PRIVATE 
+      -lcurl
+      "${GTEST_LIB_DIR}/libgtest.dll.a"
+      "${GTEST_LIB_DIR}/libgtest_main.dll.a"
+      GameSuggestorLib
+      -pthread
+    )
+  endif()
+  set_target_properties(run_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+  enable_testing()
+  add_test(NAME UnitTests COMMAND run_tests)
 endif()
 
-# Force static linking for standard libraries
-if(WIN32)
-    set_target_properties(SteamSuggestor PROPERTIES LINK_FLAGS "-static -static-libgcc -static-libstdc++")
-endif()
-
-
-# Google Test setup
-option(BUILD_TESTS "Build test programs" ON)
-if(BUILD_TESTS)
-    set(GTEST_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/lib/gtest)
-    find_package(GTest QUIET)
-    if(NOT GTest_FOUND)
-        if(EXISTS ${GTEST_ROOT}/CMakeLists.txt)
-            add_subdirectory(${GTEST_ROOT} ${CMAKE_BINARY_DIR}/gtest EXCLUDE_FROM_ALL)
-            set(GTEST_INCLUDE_DIRS ${GTEST_ROOT}/googletest/include)
-            set(GTEST_LIBRARIES gtest gtest_main)
-        else()
-            message(FATAL_ERROR "Google Test not found and source not available at ${GTEST_ROOT}")
-        endif()
-    endif()
-
-    # Create a library target for your production code
-    file(GLOB PRODUCTION_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-    add_library(steamgame ${PRODUCTION_SOURCES})
-    target_include_directories(steamgame PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/lib)
-    target_link_libraries(steamgame PRIVATE ${CURL_LIBRARIES})
-
-    # Now set up your test target to include test files and link against steamgame
-    file(GLOB TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
-    add_executable(run_tests ${TEST_SOURCES})
-    target_include_directories(run_tests PRIVATE ${GTEST_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/lib)
-    target_link_libraries(run_tests PRIVATE steamgame ${GTEST_LIBRARIES} pthread ${CURL_LIBRARIES})
-    enable_testing()
-    add_test(NAME UnitTests COMMAND run_tests)
-endif()
-
-# Installation rule
+# Installation rule for the main executable.
 install(TARGETS SteamSuggestor DESTINATION bin)
-
-# Custom clean target to remove build artifacts
-add_custom_target(cleanall
-    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/CMakeFiles
-    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/Testing
-    COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/SteamSuggestor.exe
-    COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/run_tests
-    COMMENT "Cleaning all build artifacts"
-)
 

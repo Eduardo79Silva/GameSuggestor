@@ -33,7 +33,7 @@ int main() {
     std::thread t(&GamesManager::loadGamesGenresAndCategories, &gamesManager);
     std::thread t2(&GamesManager::loadGamesDuration, &gamesManager);
 
-    // Ask the user for a game namesp
+    // Ask the user for a game names
     std::string gameName;
 
     // Search for the gameName

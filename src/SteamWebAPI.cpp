@@ -1,6 +1,7 @@
 #include <SteamWebAPI.h>
 #include <fstream>
 #include <iostream>
+#include <ostream>
 
 json loadSteamCredentials() {
 
@@ -33,7 +34,7 @@ json loadSteamCredentials() {
 json saveSteamCredentialsLocally(std::string steamApiKey) {
   std::ofstream config("config.json");
   if (config.is_open()) {
-    json configDefault = json().value("steamApiKey", steamApiKey);
+    json configDefault = json::object({ {"steamApiKey", steamApiKey} });
 
     config << configDefault;
 
@@ -46,8 +47,12 @@ std::string askForAPIKey() {
   std::string key;
 
   std::cout << "Please insert the API Key that you can find here: "
-               "https://steamcommunity.com/dev/apikey";
-  std::cout << "When you are asked for a domain simply insert: localhost.";
+               "https://steamcommunity.com/dev/apikey"
+            << std::endl;
+  std::cout << "When you are asked for a domain simply insert: localhost."
+            << std::endl;
+
+  std::cout << "API Key: ";
 
   std::cin >> key;
 

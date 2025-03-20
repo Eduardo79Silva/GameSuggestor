@@ -108,8 +108,8 @@ void GameData::loadGenresAndCategories(HttpClient &client) {
 
 void GameData::loadGameDuration() {
   // Asynchronous request example
-  if (m_name.find("Wallpaper Engine") != std::string::npos or
-      m_name.find("Test") != std::string::npos or
+  if (m_name.find("Wallpaper Engine") != std::string::npos ||
+      m_name.find("Test") != std::string::npos ||
       m_name.find("Demo") != std::string::npos) {
     m_gameDuration = 0;
     return;
