@@ -114,27 +114,32 @@ void GameData::loadGameDuration() {
     m_gameDuration = 0;
     return;
   }
-  auto result = howlongtobeat::HTMLRequests::send_web_request(m_name);
+  try {
+    std::cout << "Searching for " << m_name << std::endl;
+    auto result = howlongtobeat::HTMLRequests::send_web_request(m_name);
 
-  // Get the result when ready
-  if (result) {
-    try {
-      auto json_result = nlohmann::json::parse(*result);
+    // Get the result when ready
+    if (result) {
+      try {
+        auto json_result = nlohmann::json::parse(*result);
 
-      // Print the first few results
-      auto &data = json_result["data"];
-      if (data[0].contains("comp_main") && !data[0]["comp_main"].is_null()) {
-        m_gameDuration = data[0]["comp_main"].get<int>() / 3600;
-        m_foundName = data[0]["game_name"].get<std::string>();
+        // Print the first few results
+        auto &data = json_result["data"];
+        if (data[0].contains("comp_main") && !data[0]["comp_main"].is_null()) {
+          m_gameDuration = data[0]["comp_main"].get<int>() / 3600;
+          m_foundName = data[0]["game_name"].get<std::string>();
+        } else {
+          m_gameDuration = 0;
+        }
+      } catch (const nlohmann::json::exception &e) {
+        std::cerr << "JSON parsing error: " << e.what() << std::endl;
       }
-      else {
-        m_gameDuration = 0;
-      }
-    } catch (const nlohmann::json::exception &e) {
-      std::cerr << "JSON parsing error: " << e.what() << std::endl;
+    } else {
+      std::cerr << "Async search failed" << std::endl;
     }
-  } else {
-    std::cerr << "Async search failed" << std::endl;
+
+  } catch (const std::exception &e) {
+    std::cerr << "Error in async request: " << e.what() << std::endl;
   }
 }
 

@@ -2,11 +2,11 @@
 #ifndef HOWLONGTOBEAT_H
 #define HOWLONGTOBEAT_H
 
-#include <nlohmann/json.hpp>
 #include <cstddef>
 #include <future>
 #include <map>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 

@@ -30,15 +30,12 @@ int main() {
     GamesManager gamesManager(ownedGames);
     // In your test or main function:
     // make a call to loadGamesGenresAndCategories run in the background
-    std::thread t(&GamesManager::loadGamesGenresAndCategories, &gamesManager);
-    std::thread t2(&GamesManager::loadGamesDuration, &gamesManager);
+    gamesManager.loadGamesGenresAndCategories();
+    gamesManager.loadGamesDuration();
 
     // Ask the user for a game names
     std::string gameName;
 
-    // Search for the gameName
-    t.join();
-    t2.join();
     gamesManager.printGames();
 
   } catch (const std::exception &e) {

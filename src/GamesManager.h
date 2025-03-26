@@ -1,8 +1,7 @@
 #pragma once
 
-#define NOMINMAX
-#include <nlohmann/json.hpp>
 #include "GameData.h"
+#include <nlohmann/json.hpp>
 #include <vector>
 
 class GamesManager {
