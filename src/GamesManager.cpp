@@ -201,13 +201,11 @@ void GamesManager::loadGamesDuration() {
 
   // Process only games that need duration data
   for (size_t i = 0; i < m_games.size(); ++i) {
-    futures.push_back(std::async(std::launch::async, [this, i, &cacheHits,
-                                                      &cacheMisses]() {
+    try {
       auto &game = m_games[i];
       std::string cacheFile =
           "cache/duration_" + std::to_string(game.getId()) + ".cache";
 
-      // Check if we have cached data
       if (std::filesystem::exists(cacheFile)) {
         std::ifstream cache(cacheFile);
         int duration;
@@ -218,36 +216,23 @@ void GamesManager::loadGamesDuration() {
         }
       }
 
-      // No cache hit, load from API
-      std::cout << "Loading duration for game " << game.getId() << std::endl;
       cacheMisses++;
       try {
         game.loadGameDuration();
+        std::cout << "Game duration loaded for game " << game.getId()
+                  << std::endl;
       } catch (const std::exception &e) {
         std::cerr << "Error loading duration for game " << game.getId() << ": "
                   << e.what() << std::endl;
         return;
       }
 
-      // Cache the result
-      std::ofstream cache(cacheFile);
-      cache << game.getGameDuration();
-    }));
-  }
-
-  // Limit concurrency to avoid overwhelming the API
-
-  const size_t MAX_CONCURRENT = 2;
-  for (size_t i = 0; i < futures.size(); i += MAX_CONCURRENT) {
-    size_t end = std::min(i + MAX_CONCURRENT, futures.size());
-
-    for (size_t j = i; j < end; ++j) {
-      futures[j].wait();
+    } catch (const std::exception &e) {
+      std::cerr << "Unhandled exception in task for game " << i << ": "
+                << e.what() << std::endl;
+    } catch (...) {
+      std::cerr << "Unknown exception in task for game " << i << std::endl;
     }
-    // Progress indicator
-    std::cout << "Duration loading: " << std::min(end, futures.size()) << "/"
-              << futures.size() << " games processed ("
-              << (end * 100 / futures.size()) << "%)" << std::endl;
   }
 
   std::cout << "Duration loading complete. Cache hits: " << cacheHits

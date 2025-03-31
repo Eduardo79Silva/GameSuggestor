@@ -395,7 +395,7 @@ HTMLRequests::async_get_game_title(int game_id) {
 std::unique_ptr<SearchInformations>
 HTMLRequests::send_website_request_getcode(bool parse_all_scripts) {
   auto headers = get_title_request_headers();
-  std::string url = std::string(BASE_URL) + "submit";
+  std::string url = std::string(BASE_URL) + "submit?cachebuster=1234";
   auto response = perform_curl_request(url, headers);
 
   if (response && !response->empty()) {

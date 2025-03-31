@@ -4,7 +4,6 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <ostream>
-#include <thread>
 
 int main() {
 
@@ -12,31 +11,36 @@ int main() {
 
   // Access configuration parameters
   std::string apiKey = config.value("steamApiKey", "");
+  std::string steamId = config.value("steamId", "");
 
   std::string url =
       "https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
       "?key=" +
-      apiKey +
-      "&steamid=76561198190657579&format=json&include_appinfo=true&include_"
+      apiKey + "&steamid=" + steamId +
+      "&format=json&include_appinfo=true&include_"
       "played_free_games=true";
-
-  std::cout << "API URL: " << url << std::endl;
 
   HttpClient client = HttpClient();
 
-  auto ownedGames = client.callAPI(url);
+  json ownedGames = client.callAPI(url);
+
+  if (ownedGames.empty()) {
+    std::cout << "No games found. Please check you API key" << std::endl;
+    removeCredentials();
+
+    return 1;
+  }
 
   try {
     GamesManager gamesManager(ownedGames);
     // In your test or main function:
     // make a call to loadGamesGenresAndCategories run in the background
     gamesManager.loadGamesGenresAndCategories();
+    gamesManager.printGames();
     gamesManager.loadGamesDuration();
 
-    // Ask the user for a game names
-    std::string gameName;
+    std::cout << "Games loaded successfully." << std::endl;
 
-    gamesManager.printGames();
 
   } catch (const std::exception &e) {
     // Catch standard exceptions

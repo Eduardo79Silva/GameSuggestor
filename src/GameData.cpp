@@ -115,8 +115,13 @@ void GameData::loadGameDuration() {
     return;
   }
   try {
-    std::cout << "Searching for " << m_name << std::endl;
+    std::cout << "Loading game duration for " << m_name << std::endl;
     auto result = howlongtobeat::HTMLRequests::send_web_request(m_name);
+    if (result) {
+      std::cout << "Result: " << *result << std::endl;
+    } else {
+      std::cerr << "Failed to get result" << std::endl;
+    }
 
     // Get the result when ready
     if (result) {

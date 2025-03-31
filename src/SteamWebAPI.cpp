@@ -5,38 +5,41 @@
 
 json loadSteamCredentials() {
 
-  // Open the config file
-  std::ifstream configFile("config.json");
+  // Open the creds file
+  std::ifstream configFile("creds.json");
   if (!configFile) {
     configFile.close();
     configFile.clear();
-    configFile.open("../config.json");
+    configFile.open("../creds.json");
     if (!configFile) {
-      std::cerr << "Error: Could not open config file!" << std::endl;
+      std::cerr << "Error: Could not open creds file!" << std::endl;
       std::string key = askForAPIKey();
-      return saveSteamCredentialsLocally(key);
+      std::string id = askForSteamID();
+      return saveSteamCredentialsLocally(key, id);
     }
   }
 
-  // Parse the JSON config file
-  json config;
+  // Parse the JSON creds file
+  json creds;
   try {
-    configFile >> config;
+    configFile >> creds;
   } catch (const json::parse_error &e) {
-    std::cerr << "Error parsing config file: " << e.what() << std::endl;
+    std::cerr << "Error parsing creds file: " << e.what() << std::endl;
     std::string key = askForAPIKey();
-    return saveSteamCredentialsLocally(key);
+    std::string id = askForSteamID();
+    return saveSteamCredentialsLocally(key, id);
   }
 
-  return config;
+  return creds;
 }
 
-json saveSteamCredentialsLocally(std::string steamApiKey) {
-  std::ofstream config("config.json");
-  if (config.is_open()) {
-    json configDefault = json::object({ {"steamApiKey", steamApiKey} });
+json saveSteamCredentialsLocally(std::string steamApiKey, std::string steamId) {
+  std::ofstream creds("creds.json");
+  if (creds.is_open()) {
+    json configDefault =
+        json::object({{"steamApiKey", steamApiKey}, {"steamId", steamId}});
 
-    config << configDefault;
+    creds << configDefault;
 
     return configDefault;
   }
@@ -57,4 +60,23 @@ std::string askForAPIKey() {
   std::cin >> key;
 
   return key;
+}
+
+std::string askForSteamID() {
+  std::string id;
+
+  std::cout << "Please insert you Steam ID that can be found in the link of "
+               "your profile or under 'Account Details'"
+            << std::endl;
+
+  std::cout << "SteamID: ";
+  std::cin >> id;
+
+  return id;
+}
+
+void removeCredentials() {
+  std::cout << "Removing credentials" << std::endl;
+  std::remove("creds.json");
+  std::remove("../creds.json");
 }
