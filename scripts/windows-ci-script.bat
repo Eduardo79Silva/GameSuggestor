@@ -49,7 +49,7 @@ if not exist "!PROJECT_ROOT!lib\curl" (
     cd /d "!PROJECT_ROOT!lib"
     
     :: Download and extract curl
-    powershell -Command "& { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri https://curl.se/windows/dl-7.83.1_1/curl-7.83.1_1-win64-mingw.zip -OutFile curl.zip; Expand-Archive -Path curl.zip -DestinationPath .; }"
+    powershell -Command "& { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri https://curl.se/windows/dl-8.12.1_4/curl-8.12.1_4-win64-mingw.zip -OutFile curl.zip; Expand-Archive -Path curl.zip -DestinationPath .; }"
     
     :: Rename the extracted directory to curl
     for /d %%D in (curl-*) do (
@@ -61,6 +61,18 @@ if not exist "!PROJECT_ROOT!lib\curl" (
         exit /b 1
     )
 )
+
+
+:: Setup nlohmann/json if not present
+if not exist "!PROJECT_ROOT!lib\nlohmann" (
+    echo Setting up nlohmann/json...
+    if not exist "!PROJECT_ROOT!lib" mkdir "!PROJECT_ROOT!lib"
+    cd /d "!PROJECT_ROOT!lib"
+    powershell -Command "& { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri https://raw.githubusercontent.com/nlohmann/json/v3.11.2/single_include/nlohmann/json.hpp -OutFile json.hpp; }"
+    mkdir nlohmann
+    move json.hpp nlohmann\json.hpp
+)
+
 
 :: Setup Google Test if not present
 if not exist "!PROJECT_ROOT!lib\gtest" (
@@ -106,7 +118,19 @@ echo Package located at: !BUILD_DIR!\SteamSuggestor-Windows.zip
 exit /b 0
 
 :find_vs_developer_command
-:: Try different Visual Studio versions, starting with the newest
+rem Try to use vswhere to locate Visual Studio
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if exist "%VSWHERE%" (
+    for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
+        set "VS_PATH=%%i"
+    )
+    if defined VS_PATH (
+        call "%VS_PATH%\Common7\Tools\VsDevCmd.bat" -arch=x64
+        exit /b 0
+    )
+)
+
+rem Fallback: manually check common installation paths
 for %%v in (2022 2019 2017) do (
     if exist "C:\Program Files\Microsoft Visual Studio\%%v\Enterprise\Common7\Tools\VsDevCmd.bat" (
         call "C:\Program Files\Microsoft Visual Studio\%%v\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64

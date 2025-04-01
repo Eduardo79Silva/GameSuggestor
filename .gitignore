@@ -34,7 +34,11 @@
 # Config files
 **/config.json
 **/compile_commands.json
+**/creds.json
 
 # Folders
 build/
+libs/
 **/.cache/
+cache/
+gtest/

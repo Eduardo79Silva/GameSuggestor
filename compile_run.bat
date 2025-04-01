@@ -1,5 +1,5 @@
-cmake -S . -B .\build\
+cmake -S . -B .\build\ -G "MinGW Makefiles"
+
 cmake --build .\build\
-cd .\build\
-.\SteamSuggestor.exe
-cd ..
+
+.\build\GameSuggestor.exe

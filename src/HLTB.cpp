@@ -1,5 +1,6 @@
 #ifndef CURL_STATICLIB
 #define CURL_STATICLIB
+#include <iostream>
 #endif // CURL_STATICLIB
 
 #include "HLTB.h"
@@ -243,6 +244,7 @@ std::optional<std::string> HTMLRequests::perform_curl_request(
     const std::string &url, const std::map<std::string, std::string> &headers,
     const std::string &post_data,
     const std::map<std::string, std::string> &params) {
+  std::cout << "URL: " << url << std::endl;
 
   CURL *curl = curl_easy_init();
   if (!curl) {
@@ -344,6 +346,7 @@ HTMLRequests::send_web_request(const std::string &game_name,
 
   // The main method currently is the call to the API search URL
   std::string search_url_with_key = SEARCH_URL + search_info_data->api_key;
+  std::cout << "Search URL: " << search_url_with_key << std::endl;
   std::string payload =
       get_search_request_data(game_name, search_modifiers, page, nullptr);
 
@@ -392,7 +395,7 @@ HTMLRequests::async_get_game_title(int game_id) {
 std::unique_ptr<SearchInformations>
 HTMLRequests::send_website_request_getcode(bool parse_all_scripts) {
   auto headers = get_title_request_headers();
-  std::string url = std::string(BASE_URL) + "submit";
+  std::string url = std::string(BASE_URL) + "submit?cachebuster=1234";
   auto response = perform_curl_request(url, headers);
 
   if (response && !response->empty()) {
@@ -417,6 +420,9 @@ HTMLRequests::send_website_request_getcode(bool parse_all_scripts) {
       std::string script_url = std::string(BASE_URL);
       script_url.pop_back();
       script_url += script_src;
+      if (script_url.find("submit") == std::string::npos) {
+        continue;
+      }
       auto script_response = perform_curl_request(script_url, headers);
       if (script_response && !script_response->empty()) {
         auto search_info =

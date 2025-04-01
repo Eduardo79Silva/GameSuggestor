@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <atomic>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <future>
 #include <iostream>
+#include <string>
 
 GamesManager::GamesManager() {}
 
@@ -105,85 +107,91 @@ void GamesManager::printGamesWithCategory(std::string category) {
 void GamesManager::loadGamesGenresAndCategories() {
   // Create a cache directory if it doesn't exist
   std::filesystem::create_directories("cache");
-  
+
   std::vector<std::future<void>> futures;
   std::atomic<int> cacheHits(0);
   std::atomic<int> cacheMisses(0);
-  
+
   // Process games with limited concurrency
   const size_t MAX_CONCURRENT = 10;
   for (size_t i = 0; i < m_games.size(); ++i) {
-    futures.push_back(std::async(std::launch::async, [this, i, &cacheHits, &cacheMisses]() {
-      auto& game = m_games[i];
-      std::string cacheFile = "cache/info_" + std::to_string(game.getId()) + ".cache";
-      
-      // Check if we have cached data
-      if (std::filesystem::exists(cacheFile)) {
-        std::ifstream cache(cacheFile);
-        if (cache.good()) {
-          try {
-            // Read JSON from cache file
-            nlohmann::json gameData;
-            cache >> gameData;
-            
-            // Apply cached data to game object
-            if (gameData.contains("genres") && gameData.contains("categories")) {
-              std::vector<std::string> genres = gameData["genres"].get<std::vector<std::string>>();
-              std::vector<std::string> categories = gameData["categories"].get<std::vector<std::string>>();
-              
-              game.setGenres(genres);
-              game.setCategories(categories);
-              
-              cacheHits++;
-              return;
+    futures.push_back(
+        std::async(std::launch::async, [this, i, &cacheHits, &cacheMisses]() {
+          auto &game = m_games[i];
+          std::string cacheFile =
+              "cache/info_" + std::to_string(game.getId()) + ".cache";
+
+          // Check if we have cached data
+          if (std::filesystem::exists(cacheFile)) {
+            std::ifstream cache(cacheFile);
+            if (cache.good()) {
+              try {
+                // Read JSON from cache file
+                nlohmann::json gameData;
+                cache >> gameData;
+
+                // Apply cached data to game object
+                if (gameData.contains("genres") &&
+                    gameData.contains("categories")) {
+                  std::vector<std::string> genres =
+                      gameData["genres"].get<std::vector<std::string>>();
+                  std::vector<std::string> categories =
+                      gameData["categories"].get<std::vector<std::string>>();
+
+                  game.setGenres(genres);
+                  game.setCategories(categories);
+
+                  cacheHits++;
+                  return;
+                }
+              } catch (const std::exception &e) {
+                std::cerr << "Error reading cache for game " << game.getId()
+                          << ": " << e.what() << std::endl;
+                // Continue to load from API if cache read fails
+              }
             }
-          } catch (const std::exception& e) {
-            std::cerr << "Error reading cache for game " << game.getId() 
-                      << ": " << e.what() << std::endl;
-            // Continue to load from API if cache read fails
           }
-        }
-      }
-      
-      // No cache hit or cache read failed, load from API
-      cacheMisses++;
-      HttpClient client;
-      game.loadGenresAndCategories(client);
-      
-      // Cache the result
-      try {
-        nlohmann::json gameData;
-        gameData["genres"] = game.getGenres();
-        gameData["categories"] = game.getCategories();
-        
-        std::ofstream cache(cacheFile);
-        cache << gameData.dump(2); // Pretty-print with 2-space indentation
-      } catch (const std::exception& e) {
-        std::cerr << "Error writing cache for game " << game.getId() 
-                  << ": " << e.what() << std::endl;
-      }
-    }));
-  }
-  
+
+          // No cache hit or cache read failed, load from API
+          cacheMisses++;
+          HttpClient client;
+          game.loadGenresAndCategories(client);
+
+          // Cache the result
+          try {
+            nlohmann::json gameData;
+            gameData["genres"] = game.getGenres();
+            gameData["categories"] = game.getCategories();
+
+            std::ofstream cache(cacheFile);
+            cache << gameData.dump(2); // Pretty-print with 2-space indentation
+          } catch (const std::exception &e) {
+            std::cerr << "Error writing cache for game " << game.getId() << ": "
+                      << e.what() << std::endl;
+          }
+        }));
+  };
+
   // Process futures in batches to limit concurrency
   for (size_t i = 0; i < futures.size(); i += MAX_CONCURRENT) {
     size_t end = std::min(i + MAX_CONCURRENT, futures.size());
-    
+
     for (size_t j = i; j < end; ++j) {
       futures[j].wait();
     }
-    
+
     // Progress indicator
-    std::cout << "Genres/Categories loading: " << std::min(end, futures.size()) 
+    std::cout << "Genres/Categories loading: " << std::min(end, futures.size())
               << "/" << futures.size() << " games processed ("
               << (end * 100 / futures.size()) << "%)" << std::endl;
   }
-  
-  std::cout << "Info loading complete. Cache hits: " << cacheHits 
+
+  std::cout << "Info loading complete. Cache hits: " << cacheHits
             << ", Cache misses: " << cacheMisses << std::endl;
 }
 
 void GamesManager::loadGamesDuration() {
+  std::cout << "Loading games duration" << std::endl;
   // Create a cache directory if it doesn't exist
   std::filesystem::create_directories("cache");
 
@@ -193,41 +201,66 @@ void GamesManager::loadGamesDuration() {
 
   // Process only games that need duration data
   for (size_t i = 0; i < m_games.size(); ++i) {
-    futures.push_back(
-        std::async(std::launch::async, [this, i, &cacheHits, &cacheMisses]() {
-          auto &game = m_games[i];
-          std::string cacheFile =
-              "cache/duration_" + std::to_string(game.getId()) + ".cache";
+    futures.push_back(std::async(std::launch::async, [this, i, &cacheHits,
+                                                      &cacheMisses]() {
+      try {
+        auto &game = m_games[i];
+        std::string cacheFile =
+            "cache/duration_" + std::to_string(game.getId()) + ".cache";
 
-          // Check if we have cached data
-          if (std::filesystem::exists(cacheFile)) {
-            std::ifstream cache(cacheFile);
-            int duration;
-            if (cache >> duration) {
-              game.setGameDuration(duration);
-              cacheHits++;
-              return;
-            }
+        if (std::filesystem::exists(cacheFile)) {
+          std::ifstream cache(cacheFile);
+          int duration;
+          if (cache >> duration) {
+            game.setGameDuration(duration);
+            cacheHits++;
+            return;
           }
+        }
 
-          // No cache hit, load from API
-          cacheMisses++;
+        cacheMisses++;
+        try {
           game.loadGameDuration();
+          std::cout << "Game duration loaded for game " << game.getId()
+                    << std::endl;
+        } catch (const std::exception &e) {
+          std::cerr << "Error loading duration for game " << game.getId()
+                    << ": " << e.what() << std::endl;
+          return;
+        }
 
-          // Cache the result
-          std::ofstream cache(cacheFile);
-          cache << game.getGameDuration();
-        }));
+        std::ofstream cache(cacheFile);
+        cache << game.getGameDuration();
+      } catch (const std::exception &e) {
+        std::cerr << "Unhandled exception in task for game " << i << ": "
+                  << e.what() << std::endl;
+      } catch (...) {
+        std::cerr << "Unknown exception in task for game " << i << std::endl;
+      }
+    }));
   }
 
+  std::cout << "Waiting for all futures to finish" << std::endl;
+  std::cout << "Futures size: " << futures.size() << std::endl;
+
   // Limit concurrency to avoid overwhelming the API
+
   const size_t MAX_CONCURRENT = 10;
   for (size_t i = 0; i < futures.size(); i += MAX_CONCURRENT) {
     size_t end = std::min(i + MAX_CONCURRENT, futures.size());
 
     for (size_t j = i; j < end; ++j) {
-      futures[j].wait();
+      try {
+        futures[j].get();
+      } catch (const std::exception &e) {
+        std::cerr << "Exception in game " << m_games[j].getId() << ": "
+                  << e.what() << std::endl;
+      }
     }
+    // Progress indicator
+    std::cout << "Duration loading: " << std::min(end, futures.size()) << "/"
+              << futures.size() << " games processed ("
+              << (end * 100 / futures.size()) << "%)" << std::endl;
   }
 
   std::cout << "Duration loading complete. Cache hits: " << cacheHits

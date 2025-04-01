@@ -1,2 +1,7 @@
 CompileFlags:
-  Add: [-std=c++20]
+  Add: [
+    "-isystem", "D:/Minhas coisas/Hustle/sample_cmake/include",
+    "-isystem", "D:/Minhas coisas/Hustle/sample_cmake/src",
+    "-isystem", "D:/Minhas coisas/Hustle/sample_cmake/libs"
+  ]
+
