@@ -1,5 +1,6 @@
-#include "GamesManager.h"
-#include "HttpClient.h"
+#include <FormBuilder.h>
+#include <GamesManager.h>
+#include <HttpClient.h>
 #include <SteamWebAPI.h>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -48,6 +49,10 @@ int main() {
     // Catch any other exceptions
     std::cerr << "Unknown error occurred" << std::endl;
   }
+
+  FormBuilder formBuilder;
+  formBuilder.runForm();
+  formBuilder.printForm();
 
   return 0;
 }

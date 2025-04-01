@@ -12,14 +12,14 @@ public:
   ~GameData();
 
   int getId();
-  std::string getName();
   int getPlaytime();
   int getGameDuration();
   bool getHasCommunityVisibleStats();
   long int getRTimeLastPlayed();
+  std::string getFoundName();
+  std::string getName();
   std::vector<std::string> getGenres();
   std::vector<std::string> getCategories();
-  std::string getFoundName();
 
   void setId(int id);
   void setName(std::string name);
@@ -33,19 +33,19 @@ public:
 
   void printGameData();
 
-  void loadGenresAndCategories(HttpClient& client);
+  void loadGenresAndCategories(HttpClient &client);
   void loadGameDuration();
 
   bool operator==(const GameData &game) const;
 
 private:
   int m_id;
-  std::string m_name;
   int m_playtime;
-  std::string m_foundName;
   int m_gameDuration;
   bool m_hasCommunityVisibleStats;
   long int m_rTimeLastPlayed;
+  std::string m_name;
+  std::string m_foundName;
   std::vector<std::string> m_genres;
   std::vector<std::string> m_categories;
 };
