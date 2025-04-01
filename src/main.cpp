@@ -36,11 +36,10 @@ int main() {
     // In your test or main function:
     // make a call to loadGamesGenresAndCategories run in the background
     gamesManager.loadGamesGenresAndCategories();
-    gamesManager.printGames();
     gamesManager.loadGamesDuration();
+    gamesManager.printGames();
 
     std::cout << "Games loaded successfully." << std::endl;
-
 
   } catch (const std::exception &e) {
     // Catch standard exceptions

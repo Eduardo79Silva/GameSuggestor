@@ -201,38 +201,66 @@ void GamesManager::loadGamesDuration() {
 
   // Process only games that need duration data
   for (size_t i = 0; i < m_games.size(); ++i) {
-    try {
-      auto &game = m_games[i];
-      std::string cacheFile =
-          "cache/duration_" + std::to_string(game.getId()) + ".cache";
+    futures.push_back(std::async(std::launch::async, [this, i, &cacheHits,
+                                                      &cacheMisses]() {
+      try {
+        auto &game = m_games[i];
+        std::string cacheFile =
+            "cache/duration_" + std::to_string(game.getId()) + ".cache";
 
-      if (std::filesystem::exists(cacheFile)) {
-        std::ifstream cache(cacheFile);
-        int duration;
-        if (cache >> duration) {
-          game.setGameDuration(duration);
-          cacheHits++;
+        if (std::filesystem::exists(cacheFile)) {
+          std::ifstream cache(cacheFile);
+          int duration;
+          if (cache >> duration) {
+            game.setGameDuration(duration);
+            cacheHits++;
+            return;
+          }
+        }
+
+        cacheMisses++;
+        try {
+          game.loadGameDuration();
+          std::cout << "Game duration loaded for game " << game.getId()
+                    << std::endl;
+        } catch (const std::exception &e) {
+          std::cerr << "Error loading duration for game " << game.getId()
+                    << ": " << e.what() << std::endl;
           return;
         }
-      }
 
-      cacheMisses++;
-      try {
-        game.loadGameDuration();
-        std::cout << "Game duration loaded for game " << game.getId()
-                  << std::endl;
+        std::ofstream cache(cacheFile);
+        cache << game.getGameDuration();
       } catch (const std::exception &e) {
-        std::cerr << "Error loading duration for game " << game.getId() << ": "
+        std::cerr << "Unhandled exception in task for game " << i << ": "
                   << e.what() << std::endl;
-        return;
+      } catch (...) {
+        std::cerr << "Unknown exception in task for game " << i << std::endl;
       }
+    }));
+  }
 
-    } catch (const std::exception &e) {
-      std::cerr << "Unhandled exception in task for game " << i << ": "
-                << e.what() << std::endl;
-    } catch (...) {
-      std::cerr << "Unknown exception in task for game " << i << std::endl;
+  std::cout << "Waiting for all futures to finish" << std::endl;
+  std::cout << "Futures size: " << futures.size() << std::endl;
+
+  // Limit concurrency to avoid overwhelming the API
+
+  const size_t MAX_CONCURRENT = 10;
+  for (size_t i = 0; i < futures.size(); i += MAX_CONCURRENT) {
+    size_t end = std::min(i + MAX_CONCURRENT, futures.size());
+
+    for (size_t j = i; j < end; ++j) {
+      try {
+        futures[j].get();
+      } catch (const std::exception &e) {
+        std::cerr << "Exception in game " << m_games[j].getId() << ": "
+                  << e.what() << std::endl;
+      }
     }
+    // Progress indicator
+    std::cout << "Duration loading: " << std::min(end, futures.size()) << "/"
+              << futures.size() << " games processed ("
+              << (end * 100 / futures.size()) << "%)" << std::endl;
   }
 
   std::cout << "Duration loading complete. Cache hits: " << cacheHits
