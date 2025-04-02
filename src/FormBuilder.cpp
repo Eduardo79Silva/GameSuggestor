@@ -11,6 +11,8 @@ FormBuilder::~FormBuilder() {}
 
 int FormBuilder::getDesiredPlayTime() { return m_desiredPlayTime; }
 
+int FormBuilder::getDesiredPrice() { return m_desiredPrice; }
+
 std::vector<std::string> FormBuilder::getDesiredGenres() {
   return m_desiredGenres;
 }

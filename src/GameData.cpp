@@ -25,19 +25,21 @@ GameData::GameData(int id, std::string name, int playtime,
 
 GameData::~GameData() {}
 
-int GameData::getId() { return m_id; }
+const int GameData::getId() { return m_id; }
+
+const int GameData::getPrice() { return m_price; }
 
 std::string GameData::getName() { return m_name; }
 
-int GameData::getPlaytime() { return m_playtime; }
+const int GameData::getPlaytime() { return m_playtime; }
 
-int GameData::getGameDuration() { return m_gameDuration; }
+const int GameData::getGameDuration() { return m_gameDuration; }
 
-bool GameData::getHasCommunityVisibleStats() {
+const bool GameData::getHasCommunityVisibleStats() {
   return m_hasCommunityVisibleStats;
 }
 
-long int GameData::getRTimeLastPlayed() { return m_rTimeLastPlayed; }
+const long int GameData::getRTimeLastPlayed() { return m_rTimeLastPlayed; }
 
 std::vector<std::string> GameData::getGenres() { return m_genres; }
 

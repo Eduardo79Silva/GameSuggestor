@@ -11,17 +11,19 @@ public:
            bool hasCommunityVisibleStats, long int rTimeLastPlayed);
   ~GameData();
 
-  int getId();
-  int getPlaytime();
-  int getGameDuration();
-  bool getHasCommunityVisibleStats();
-  long int getRTimeLastPlayed();
+  const int getId();
+  const int getPlaytime();
+  const int getPrice();
+  const int getGameDuration();
+  const bool getHasCommunityVisibleStats();
+  const long int getRTimeLastPlayed();
   std::string getFoundName();
   std::string getName();
   std::vector<std::string> getGenres();
   std::vector<std::string> getCategories();
 
   void setId(int id);
+  void setPrice(int price);
   void setName(std::string name);
   void setPlaytime(int playtime);
   void setGameDuration(int gameDuration);
@@ -42,6 +44,7 @@ private:
   int m_id;
   int m_playtime;
   int m_gameDuration;
+  int m_price;
   bool m_hasCommunityVisibleStats;
   long int m_rTimeLastPlayed;
   std::string m_name;

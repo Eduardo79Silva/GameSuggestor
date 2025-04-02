@@ -1,4 +1,5 @@
 #include <FormBuilder.h>
+#include <GameMatch.h>
 #include <GamesManager.h>
 #include <HttpClient.h>
 #include <SteamWebAPI.h>
@@ -21,6 +22,8 @@ int main() {
       "&format=json&include_appinfo=true&include_"
       "played_free_games=true";
 
+  std::cout << "URL: " << url << std::endl;
+
   HttpClient client = HttpClient();
 
   json ownedGames = client.callAPI(url);
@@ -32,8 +35,8 @@ int main() {
     return 1;
   }
 
+  GamesManager gamesManager(ownedGames);
   try {
-    GamesManager gamesManager(ownedGames);
     // In your test or main function:
     // make a call to loadGamesGenresAndCategories run in the background
     gamesManager.loadGamesGenresAndCategories();
@@ -53,6 +56,10 @@ int main() {
   FormBuilder formBuilder;
   formBuilder.runForm();
   formBuilder.printForm();
+
+  GameMatch gameMatch;
+  gameMatch.runGameMatch(formBuilder, gamesManager);
+  gameMatch.printGameMatch();
 
   return 0;
 }

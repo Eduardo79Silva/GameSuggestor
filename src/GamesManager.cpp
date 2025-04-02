@@ -42,6 +42,10 @@ std::vector<GameData> GamesManager::getGamesWithGenre(std::string genre) {
 
   for (auto &game : m_games) {
     auto genreList = game.getGenres(); // Store it in a variable
+    for (auto &gen : genreList) {
+      std::transform(gen.begin(), gen.end(), gen.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+    }
     if (std::find(genreList.begin(), genreList.end(), genre) !=
         genreList.end()) {
       gamesWithGenre.push_back(game);
@@ -54,6 +58,10 @@ std::vector<GameData> GamesManager::getGamesWithCategory(std::string category) {
   std::vector<GameData> gamesWithCategory;
   for (auto &game : m_games) {
     auto categoryList = game.getCategories();
+    for (auto &cat : categoryList) {
+      std::transform(cat.begin(), cat.end(), cat.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+    }
     if (std::find(categoryList.begin(), categoryList.end(), category) !=
         categoryList.end()) {
       gamesWithCategory.push_back(game);
